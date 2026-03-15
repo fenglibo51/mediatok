@@ -261,7 +261,7 @@ onMounted(() => { calculateCacheSize() })
               <span class="text-zinc-950 font-black text-4xl tracking-tighter">MT</span>
             </div>
             <h1 class="text-3xl font-black text-white mb-1">MEDIA-TOK</h1>
-            <p class="text-emerald-400 font-black text-[11px] tracking-[0.15em] mb-6 uppercase leading-relaxed">VERSION 1.0.1<br>(ALPHA)</p>
+            <p class="text-emerald-400 font-black text-[11px] tracking-[0.15em] mb-6 uppercase leading-relaxed">VERSION 1.0.2<br>(ALPHA)</p>
 
             <div class="flex flex-col items-center gap-2 mb-8 w-full">
               <div class="flex flex-wrap justify-center gap-2">
