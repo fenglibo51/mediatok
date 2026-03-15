@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+body {
+  background-color: #0a0a0a; /* 默认暗黑纯黑背景 */
+  color: white; /* 默认文字白色 */
+  margin: 0;
+  padding: 0;
+  /* 防止手机端整个网页被上下拖拽拉出白边 */
+  overscroll-behavior-y: contain; 
+}

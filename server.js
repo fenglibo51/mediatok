@@ -20,7 +20,7 @@ app.get('/api/check-update', (req, res) => {
     res.json({ 
         hasUpdate: true, 
         message: "发现新版本！",
-        downloadUrl: "https://github.com/fenglibo51/media-tok/releases/latest/download/dist.zip" // 咱们下一步去 GitHub 搞这个
+        downloadUrl: "https://github.com/fenglibo51/mediatok/releases/latest/download/dist.zip" // 咱们下一步去 GitHub 搞这个
     });
 });
 
@@ -30,7 +30,7 @@ app.post('/api/perform-update', (req, res) => {
     
     // 假设前端传来了下载链接，这里为了演示直接写死
     // 逻辑：下载 zip -> 解压并强制覆盖到 dist 目录 -> 删除压缩包
-    const zipUrl = "https://github.com/fenglibo51/media-tok/releases/latest/download/dist.zip"; 
+    const zipUrl = "https://github.com/fenglibo51/mediatok/releases/latest/download/dist.zip"; 
     
     // 注意：这里的命令依赖 Linux 容器里的 curl 和 unzip
     const updateCmd = `curl -L "${zipUrl}" -o update.zip && unzip -o update.zip -d ./dist && rm update.zip`;

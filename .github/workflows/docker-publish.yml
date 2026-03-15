@@ -1,0 +1,42 @@
+name: 自动构建并推送 Docker 镜像
+
+# 触发条件：只有当你发布新的 Release (发行版) 时，机器人才会开始干活
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 拉取最新代码
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 配置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 自动打包前端页面
+        run: |
+          npm install
+          npm run build
+
+      - name: 🔑 登录 Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 🐳 启动 Docker 多架构构建引擎
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🚀 构建并推送到 Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # 自动生成 latest 标签和版本号标签
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/mediatok:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/mediatok:${{ github.event.release.tag_name }}
