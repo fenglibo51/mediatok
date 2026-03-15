@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import https from 'https'; // 使用原生模块，无需安装 axios
+import https from 'https';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +23,7 @@ const getLatestTag = () => {
             hostname: 'api.github.com',
             path: '/repos/fenglibo51/mediatok/releases/latest',
             method: 'GET',
-            headers: { 'User-Agent': 'MediaTok-Server' } // GitHub API 必须包含 User-Agent
+            headers: { 'User-Agent': 'MediaTok-Server' } 
         };
 
         https.get(options, (res) => {
@@ -32,6 +32,10 @@ const getLatestTag = () => {
             res.on('end', () => {
                 try {
                     const json = JSON.parse(data);
+                    // 打印一下 API 返回的原始数据，方便排查
+                    if (!json.tag_name) {
+                        console.log('⚠️ GitHub API 未返回 tag_name，可能是频率限制或 Release 设置问题');
+                    }
                     resolve(json.tag_name || '0.0.0');
                 } catch (e) { reject(e); }
             });
@@ -48,9 +52,11 @@ const getLocalVersion = () => {
         if (fs.existsSync(versionPath)) {
             const data = JSON.parse(fs.readFileSync(versionPath, 'utf8'));
             return data.version || '0.0.0';
+        } else {
+            console.log('📍 警告：本地 dist/version.json 文件不存在');
         }
     } catch (e) {
-        console.error('读取本地版本文件失败:', e.message);
+        console.error('❌ 读取本地版本文件失败:', e.message);
     }
     return '0.0.0';
 };
@@ -61,45 +67,53 @@ app.get('/api/check-update', async (req, res) => {
         const localVer = getLocalVersion();
         const latestTag = await getLatestTag();
         
-        // 处理版本号前面的 'v'，比如 v1.0.1 变成 1.0.1
-        const latestVer = latestTag.replace(/^v/, '');
+        // 彻底清理版本号，只留数字和点（去掉 v，去掉空格）
+        const latestVer = latestTag.replace(/^v/, '').trim();
+        const currentVer = localVer.trim();
 
-        console.log(`🔍 版本检查: 本地[${localVer}] vs 云端[${latestVer}]`);
+        // 🌟 这是抓内鬼的关键日志！在 NAS Docker 控制台看这两行
+        console.log('--- 🛡️ 版本对账单 ---');
+        console.log(`> 云端最新版本: [${latestVer}]`);
+        console.log(`> 本地当前版本: [${currentVer}]`);
 
-        if (latestVer !== localVer) {
+        if (latestVer !== currentVer && latestVer !== '0.0.0') {
+            console.log('🚩 结论: 发现新版本，通知前端更新');
             res.json({ 
                 hasUpdate: true, 
                 latest: latestVer,
-                current: localVer,
+                current: currentVer,
                 message: `发现新版本 v${latestVer}！`
             });
         } else {
+            console.log('✅ 结论: 版本一致，无需更新');
             res.json({ 
                 hasUpdate: false,
                 message: "已经是最新版本" 
             });
         }
+        console.log('-------------------');
     } catch (e) {
-        console.error('检查更新出错:', e.message);
-        res.status(500).json({ hasUpdate: false, msg: "无法连接到 GitHub" });
+        console.error('❌ 检查更新过程中崩溃:', e.message);
+        res.status(500).json({ hasUpdate: false, msg: "接口故障" });
     }
 });
 
 // 3. 执行热更新接口
 app.post('/api/perform-update', (req, res) => {
-    console.log('🤖 收到更新指令，开始下载补丁...');
+    console.log('🤖 收到强制更新指令，准备覆盖...');
     
     const zipUrl = "https://github.com/fenglibo51/mediatok/releases/latest/download/dist.zip"; 
     
-    // 逻辑：下载 -> 解压覆盖 -> 删除。建议确保 Docker 镜像里有 curl 和 unzip
-    const updateCmd = `curl -L "${zipUrl}" -o update.zip && unzip -o update.zip -d . && rm update.zip`;
+    // 🌟 重点优化：我们解压到当前目录
+    // 提示：压缩时请“进入 dist 文件夹全选文件后压缩”，不要在 dist 文件夹外面压缩
+    const updateCmd = `curl -L "${zipUrl}" -o update.zip && unzip -o update.zip -d ./dist && rm update.zip`;
 
     exec(updateCmd, (err, stdout, stderr) => {
         if (err) {
-            console.error(`❌ 更新失败: ${err.message}`);
+            console.error(`❌ 命令执行失败: ${err.message}`);
             return res.status(500).json({ success: false, msg: err.message });
         }
-        console.log('✅ 补丁覆盖完毕！本地 version.json 已同步。');
+        console.log('✨ 补丁解压覆盖成功！');
         res.json({ success: true, msg: "更新部署完成！" });
     });
 });
