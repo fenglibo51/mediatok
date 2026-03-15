@@ -218,13 +218,15 @@ const handlePlayerLastWatched = (data) => {
 
     <transition enter-active-class="transition-transform duration-300 ease-out" enter-from-class="translate-y-full" enter-to-class="translate-y-0" leave-active-class="transition-transform duration-300 ease-in" leave-from-class="translate-y-0" leave-to-class="translate-y-full">
       <div v-if="currentView === 'search'" class="absolute inset-0 w-full h-full bg-[#0a0a0a] z-30 flex flex-col">
-        <header class="px-4 pb-3 pt-[calc(env(safe-area-inset-top,24px)+20px)] flex items-center gap-3 border-b border-zinc-800/50 bg-[#0a0a0a] z-50 shadow-md">
+        <header class="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.5rem)] flex items-center gap-3 border-b border-zinc-800/50 bg-[#0a0a0a] z-50 shadow-md">
           <button @click="closeSearch" class="p-2 -ml-2 text-zinc-400 hover:text-white active:scale-90 transition outline-none">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
           </button>
-          <div class="flex-1 relative">
-             <input id="searchInput" v-model="searchQuery" type="text" placeholder="搜索短剧..." class="w-full bg-zinc-800/80 text-white placeholder-zinc-500 px-4 py-2.5 rounded-full border border-zinc-700/50 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition text-sm">
-             <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1">
+          
+          <div class="flex-1 relative flex items-center">
+             <input id="searchInput" v-model="searchQuery" type="text" placeholder="搜索短剧..." class="w-full bg-zinc-800/80 text-white placeholder-zinc-500 px-4 py-2.5 rounded-full border border-zinc-700/50 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition text-sm outline-none">
+             
+             <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 text-zinc-400 hover:text-white p-1 outline-none">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
              </button>
           </div>

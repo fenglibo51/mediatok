@@ -42,8 +42,6 @@ services:
       - TZ=Asia/Shanghai # 锁定本地时区，确保日志时间准确
     ports:
       - "8090:8090" # 左侧为宿主机访问端口，可按需修改
-    volumes:
-      - ./data/dist:/app/dist # 挂载前端数据卷，保证重启容器后热更界面不丢失
 
 
 
@@ -55,6 +53,4 @@ docker compose up -d
 启动完成后，在手机浏览器中访问 http://你的IP:8090，并点击**“添加到主屏幕”**以获得无系统状态栏的最完美沉浸式体验！
 
 🤝 鸣谢
-特别感谢 @migumigu 提供的开发思路。
-
-由 fenglibo51 倾力打造。
+特别感谢 @migumigu 提供的开发思路。对了，还有Gemini～
