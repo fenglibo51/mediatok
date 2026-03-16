@@ -13,7 +13,6 @@ const {
   fetchDramaDetails, fetchLibraryContent // 🌟 移除了失效的 getLibName
 } = useMediaTok()
 
-
 // ==================== 2. 全局 UI 状态控制 ====================
 const isDrawerOpen = ref(false) 
 const currentView = ref('home') 
@@ -108,7 +107,7 @@ const handlePlayerLastWatched = (data) => {
 </script>
 
 <template>
-  <div class="h-screen w-screen bg-[#0a0a0a] text-white overflow-hidden relative font-sans select-none">
+  <div class="h-[100dvh] w-screen bg-[#0a0a0a] text-white overflow-hidden relative font-sans select-none">
 
     <transition enter-active-class="transition-opacity duration-300" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-opacity duration-300" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="isOffline" class="absolute inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md select-none">
@@ -135,7 +134,7 @@ const handlePlayerLastWatched = (data) => {
     </transition>
 
     <div v-show="currentView === 'home'" class="absolute inset-0 w-full h-full">
-      <header class="absolute top-0 left-0 w-full p-4 flex items-center justify-between z-50 pt-[env(safe-area-inset-top,1rem)] bg-gradient-to-b from-[#0a0a0a]/90 to-transparent pointer-events-none">
+      <header class="absolute top-0 left-0 w-full p-4 flex items-center justify-between z-50 pt-[calc(env(safe-area-inset-top,0px)+1rem)] bg-gradient-to-b from-[#0a0a0a]/90 to-transparent pointer-events-none">
         <button v-show="!isDrawerOpen" @click="openDrawer" class="p-2 transition-opacity active:scale-95 pointer-events-auto outline-none">
           <svg class="w-8 h-8 text-white drop-shadow-md" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path></svg>
         </button>
@@ -171,7 +170,7 @@ const handlePlayerLastWatched = (data) => {
         </div>
       </header>
 
-      <main class="h-full w-full pt-[calc(env(safe-area-inset-top,1rem)+4rem)] px-4 pb-24 overflow-y-auto overscroll-y-contain no-scrollbar relative">
+      <main class="h-full w-full pt-[calc(env(safe-area-inset-top,0px)+5rem)] px-4 pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] overflow-y-auto overscroll-y-contain no-scrollbar relative">
         <div v-if="isFetchingDramas" class="absolute inset-0 flex flex-col items-center justify-center opacity-60">
            <svg class="w-10 h-10 text-emerald-500 animate-spin mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
         </div>
@@ -194,7 +193,7 @@ const handlePlayerLastWatched = (data) => {
       </main>
 
       <transition enter-active-class="transition-all duration-500 cubic-bezier(.34,1.56,.64,1)" enter-from-class="opacity-0 translate-y-12 scale-90" enter-to-class="opacity-100 translate-y-0 scale-100" leave-active-class="transition-all duration-300 ease-in-out" leave-from-class="opacity-100 translate-y-0 scale-100" leave-to-class="opacity-0 translate-y-12 scale-90">
-        <div v-if="miniPlayer.show" @click="jumpToPlayerFromMini" class="absolute bottom-[env(safe-area-inset-bottom,1.5rem)] right-5 w-32 aspect-[3/4] z-20 select-none">
+        <div v-if="miniPlayer.show" @click="jumpToPlayerFromMini" class="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] right-5 w-32 aspect-[3/4] z-20 select-none">
           <div class="w-full h-full relative rounded-xl shadow-2xl border border-zinc-700/60 overflow-hidden cursor-pointer active:scale-95 transition-transform duration-200">
             <img :src="lastWatched?.poster" class="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none" />
             <div class="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/90 to-transparent z-10 pointer-events-none"></div>
@@ -218,7 +217,7 @@ const handlePlayerLastWatched = (data) => {
 
     <transition enter-active-class="transition-transform duration-300 ease-out" enter-from-class="translate-y-full" enter-to-class="translate-y-0" leave-active-class="transition-transform duration-300 ease-in" leave-from-class="translate-y-0" leave-to-class="translate-y-full">
       <div v-if="currentView === 'search'" class="absolute inset-0 w-full h-full bg-[#0a0a0a] z-30 flex flex-col">
-        <header class="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.5rem)] flex items-center gap-3 border-b border-zinc-800/50 bg-[#0a0a0a] z-50 shadow-md">
+        <header class="px-4 pb-4 pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] flex items-center gap-3 border-b border-zinc-800/50 bg-[#0a0a0a] z-50 shadow-md">
           <button @click="closeSearch" class="p-2 -ml-2 text-zinc-400 hover:text-white active:scale-90 transition outline-none">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
           </button>
@@ -232,7 +231,7 @@ const handlePlayerLastWatched = (data) => {
           </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto px-4 pt-6 pb-20 relative no-scrollbar">
+        <div class="flex-1 overflow-y-auto px-4 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+5rem)] relative no-scrollbar">
           <div v-if="!searchQuery" class="absolute inset-0 flex flex-col items-center justify-center opacity-40">
              <svg class="w-16 h-16 text-zinc-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
              <p class="text-sm font-bold text-zinc-400 tracking-widest">输入剧名实时检索当前库</p>
@@ -243,14 +242,14 @@ const handlePlayerLastWatched = (data) => {
              <p class="text-sm font-bold text-zinc-400 tracking-widest">未找到相关短剧</p>
           </div>
 
-      <MediaGrid 
-        v-else
-        :dramas="searchResults" 
-        :watch-history="watchHistory" 
-        :is-loading-details="isLoadingDetails" 
-        :current-play-id="currentPlayData?.id" 
-        @click-drama="handleDramaClick" 
-      />
+          <MediaGrid 
+            v-else
+            :dramas="searchResults" 
+            :watch-history="watchHistory" 
+            :is-loading-details="isLoadingDetails" 
+            :current-play-id="currentPlayData?.id" 
+            @click-drama="handleDramaClick" 
+          />
         </div>
       </div>
     </transition>

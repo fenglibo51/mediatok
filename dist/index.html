@@ -24,14 +24,22 @@
       html, body { 
         background: #000000 !important; 
         margin: 0; 
-        height: 100vh; 
+        /* 🌟 核心修复 1：使用 dvh 彻底解决手机浏览器地址栏遮挡问题！ */
+        height: 100dvh; 
         width: 100vw;
         overflow: hidden; 
+        /* 🌟 核心修复 2：干掉手机浏览器的下拉橡皮筋回弹，原生体验拉满 */
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
       }
-      #app { background: #000000 !important; }
+      #app { 
+        background: #000000 !important; 
+        height: 100%;
+        width: 100%;
+      }
     </style>
-  <script type="module" crossorigin src="/assets/index-CIlsBB3Z.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DEgB_ZLW.css">
+  <script type="module" crossorigin src="/assets/index-CkN7ibJk.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-InTrBvvi.css">
 <link rel="manifest" href="/manifest.webmanifest"></head>
 <body style="background-color: #000000;">
     <div id="app"></div>

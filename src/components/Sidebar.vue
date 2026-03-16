@@ -30,7 +30,7 @@ const checkUpdate = async () => {
   updateState.value = 'checking'
 
   try {
-    // 🌟 核心改进：请求时带上当前版本号，后端会比对云端最新 Tag
+    // 🌟 核心改进：请求时带上当前版本号
     const res = await fetch(`/api/check-update?current=${CURRENT_VERSION}`)
     const data = await res.json()
 
@@ -61,7 +61,6 @@ const checkUpdate = async () => {
          alert('拉取补丁失败，请检查 NAS 网络或后端日志。')
       }
     } else {
-      // 🌟 版本一致，直接进入“已是最新”状态
       updateState.value = 'latest'
       setTimeout(() => { 
         updateState.value = 'idle' 
@@ -334,6 +333,55 @@ onMounted(() => {
         </div>
       </div>
 
+      <div v-if="currentDrawer === 'server-setup' && servers[tempSetupServerId]" class="flex flex-col h-full w-full animate-[fadeIn_0.2s_ease-out]">
+        <div class="p-4 border-b border-zinc-700/50 flex items-center relative">
+          <button @click="currentDrawer = 'servers'; testState = 'idle'" class="absolute left-4 p-2 -ml-2 text-zinc-400 hover:text-white transition active:scale-90 outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+          <h2 class="text-lg font-bold text-gray-200 flex-1 text-center">{{ servers[tempSetupServerId].name }} 配置</h2>
+        </div>
+        <div class="flex-1 p-6 overflow-y-auto flex flex-col items-center">
+          <div class="w-full space-y-5">
+            <div class="relative"><p class="text-sm font-medium text-zinc-300 text-center mb-2">IP 地址或域名</p><input v-model="servers[tempSetupServerId].ip" type="text" :placeholder="tempSetupServerId === 'plex' ? '例如: http://192.168.1.10:32400' : '例如: http://192.168.1.10:8096'" class="w-full bg-zinc-800/80 text-white placeholder-zinc-600 text-center px-4 py-3.5 rounded-xl border border-zinc-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition" :disabled="testState === 'success'"></div>
+            <div class="relative"><p class="text-sm font-medium text-zinc-300 text-center mb-2">API Key / Token</p><input v-model="servers[tempSetupServerId].token" type="text" placeholder="输入密钥" class="w-full bg-zinc-800/80 text-white placeholder-zinc-600 text-center px-4 py-3.5 rounded-xl border border-zinc-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition" :disabled="testState === 'success'"></div>
+          </div>
+          <div v-if="testState === 'success'" class="w-full mt-6 p-5 bg-zinc-800/40 rounded-2xl border border-zinc-700/50 shadow-inner animate-[fadeIn_0.3s_ease-out]">
+            <div class="flex items-center justify-center gap-2 text-emerald-400 mb-4"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg><span class="text-sm font-bold">连通成功！请选择媒体库</span></div>
+            <div class="flex flex-wrap justify-center gap-3">
+              <button v-for="lib in availableLibraries" :key="lib.id" @click="toggleLib(lib)" class="px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 border outline-none" :class="selectedLibs.some(l => l.serverId === tempSetupServerId && l.libId === lib.id) ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'">{{ lib.name }}</button>
+            </div>
+          </div>
+          
+          <button @click="testState === 'success' ? saveServerSetup() : testConnection()" :disabled="testState === 'testing' || (testState === 'success' && !hasSelectedLibsForCurrentServer)" class="w-full mt-8 py-3.5 rounded-xl font-bold transition-all duration-300 flex justify-center items-center gap-2 outline-none" :class="{'bg-zinc-700 text-white hover:bg-zinc-600 active:scale-95': testState === 'idle', 'bg-cyan-600 text-white animate-pulse cursor-wait': testState === 'testing', 'bg-emerald-500 text-white active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.4)]': testState === 'success' && hasSelectedLibsForCurrentServer, 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700': testState === 'success' && !hasSelectedLibsForCurrentServer, 'bg-red-500 text-white active:scale-95': testState === 'error'}">
+            <svg v-if="testState === 'idle'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <svg v-if="testState === 'testing'" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <svg v-if="testState === 'error'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span>{{ testState === 'idle' ? '连通测试' : testState === 'testing' ? '正在握手...' : testState === 'success' && !hasSelectedLibsForCurrentServer ? '请勾选媒体库' : testState === 'success' && hasSelectedLibsForCurrentServer ? '设为默认服务器并保存' : '检查下设置' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div v-if="currentDrawer === 'settings'" class="flex flex-col h-full w-full animate-[fadeIn_0.2s_ease-out]">
+        <div class="p-4 border-b border-zinc-700/50 flex items-center relative">
+          <button @click="currentDrawer = 'main'" class="absolute left-4 p-2 -ml-2 text-zinc-400 hover:text-white transition active:scale-90 outline-none"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
+          <h2 class="text-lg font-bold text-gray-200 flex-1 text-center">播放设置</h2>
+        </div>
+        <div class="flex-1 p-4 space-y-6 overflow-y-auto">
+          <div @click="clearCache" class="flex items-center justify-between p-4 bg-zinc-800/40 hover:bg-zinc-700/40 active:scale-[0.98] transition cursor-pointer rounded-2xl">
+            <div class="flex items-center gap-3"><svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg><div><p class="text-base font-medium text-gray-200">清除缓存</p><p class="text-xs text-zinc-500">释放海报与应用数据空间</p></div></div>
+            <div class="flex items-center gap-2"><span v-if="cacheState === 'idle'" class="text-sm font-medium text-emerald-400">{{ cacheSize }}</span><svg v-if="cacheState === 'clearing'" class="w-5 h-5 text-rose-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><svg v-if="cacheState === 'cleared'" class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div>
+          </div>
+          <div class="flex items-center justify-between p-4 bg-zinc-800/40 rounded-2xl">
+            <div class="flex items-center gap-3"><svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg><div><p class="text-base font-medium text-gray-200">无限播放</p><p class="text-xs text-zinc-500">播完自动滑入下一集</p></div></div>
+            <button @click="settings.infinitePlay = !settings.infinitePlay" class="w-12 h-6 rounded-full transition-colors duration-300 relative outline-none" :class="settings.infinitePlay ? 'bg-emerald-500' : 'bg-zinc-600'"><div class="w-4 h-4 bg-white rounded-full absolute top-1 transition-transform duration-300" :class="settings.infinitePlay ? 'translate-x-7' : 'translate-x-1'"></div></button>
+          </div>
+          <div class="flex items-center justify-between p-4 bg-zinc-800/40 rounded-2xl">
+            <div class="flex items-center gap-3"><svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg><div><p class="text-base font-medium text-gray-200">默认静音</p><p class="text-xs text-zinc-500">点按音量键后解除</p></div></div>
+            <button @click="settings.muteDefault = !settings.muteDefault" class="w-12 h-6 rounded-full transition-colors duration-300 relative outline-none" :class="settings.muteDefault ? 'bg-emerald-500' : 'bg-zinc-600'"><div class="w-4 h-4 bg-white rounded-full absolute top-1 transition-transform duration-300" :class="settings.muteDefault ? 'translate-x-7' : 'translate-x-1'"></div></button>
+          </div>
+        </div>
+      </div>
+
       <div v-if="currentDrawer === 'about'" class="flex flex-col h-full w-full animate-[fadeIn_0.2s_ease-out]">
         <div class="p-4 flex items-center relative border-b border-zinc-700/50">
           <button @click="currentDrawer = 'main'" class="absolute left-4 p-2 -ml-2 text-zinc-400 hover:text-white transition active:scale-90 outline-none">
@@ -351,7 +399,7 @@ onMounted(() => {
               <span class="text-zinc-950 font-black text-4xl tracking-tighter">MT</span>
             </div>
             <h1 class="text-3xl font-black text-white mb-1">MEDIA-TOK</h1>
-            <p class="text-emerald-400 font-black text-[11px] tracking-[0.15em] mb-6 uppercase leading-relaxed">VERSION 1.0.3<br>(ALPHA)</p>
+            <p class="text-emerald-400 font-black text-[11px] tracking-[0.15em] mb-6 uppercase leading-relaxed">VERSION 1.0.4<br>(ALPHA)</p>
 
             <div class="flex flex-col items-center gap-2 mb-8 w-full">
               <div class="flex flex-wrap justify-center gap-2">
