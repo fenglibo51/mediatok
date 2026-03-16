@@ -25,13 +25,11 @@ const pendingResumeTime = ref(props.initialTime)
 const videoRefs = ref({}) 
 const hlsInstances = {} 
 
-// 🌟 核心修复 1：动态生成【绝对唯一】的服务器转码请求链接，防止 Plex 转码器冲突
+// 动态生成转码请求链接
 const getTranscodeUrl = (ep) => {
   const server = props.serverInfo
   const baseUrl = server.ip.replace(/\/$/, '')
   const clientId = 'MediaTok-Web-App'
-  
-  // 生成独一无二的 session ID，这是防止卡死的核心！
   const uniqueSession = `mediatok_${ep.id}_${Date.now()}`
 
   if (server.id === 'plex') {
@@ -42,7 +40,6 @@ const getTranscodeUrl = (ep) => {
   return ep.directUrl 
 }
 
-// 🌟 核心修复 2：极其严格的内存挂载与垃圾回收 + 强制自动播放
 const initVideoNode = (el, ep) => {
   if (el) {
     videoRefs.value[ep.index] = el
@@ -53,7 +50,6 @@ const initVideoNode = (el, ep) => {
 
     if (el.canPlayType('application/vnd.apple.mpegurl')) {
       el.src = streamUrl
-      // Safari 自动播放补丁
       el.addEventListener('loadedmetadata', () => {
         if (isPlaying.value) el.play().catch(() => {})
       }, { once: true })
@@ -63,7 +59,6 @@ const initVideoNode = (el, ep) => {
           const hls = new window.Hls({ enableWorker: true, lowLatencyMode: true })
           hls.loadSource(streamUrl)
           hls.attachMedia(el)
-          // Chrome/安卓 HLS.js 自动播放补丁
           hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
             if (isPlaying.value) el.play().catch(() => {})
           })
@@ -85,7 +80,6 @@ const initVideoNode = (el, ep) => {
       }
     }
   } else {
-    // 节点卸载时，强制清空引用并销毁 HLS 实例，释放 Safari 内存！
     delete videoRefs.value[ep.index]
     if (hlsInstances[ep.index]) {
       hlsInstances[ep.index].destroy()
@@ -101,7 +95,9 @@ let observer = null
 // UI 控制
 const showPlayerUi = () => {
   isPlayerUiVisible.value = true; clearTimeout(uiTimeout)
-  if (isPlaying.value && !showEpDrawer.value && !isEnded.value) { uiTimeout = setTimeout(() => { isPlayerUiVisible.value = false }, 3000) }
+  if (isPlaying.value && !showEpDrawer.value && !isEnded.value && !isDraggingProgress.value) { 
+    uiTimeout = setTimeout(() => { isPlayerUiVisible.value = false }, 3000) 
+  }
 }
 const togglePlayerUi = () => {
   if (showEpDrawer.value) { showEpDrawer.value = false; showPlayerUi(); return }
@@ -143,15 +139,52 @@ const handlePlayerClick = () => {
   } else { clickTimer = setTimeout(() => { clickTimer = null; togglePlayerUi() }, 250) }
 }
 
-// 进度与播放控制
-const handleSeek = (e) => {
-  const rect = e.currentTarget.getBoundingClientRect()
+// ==================== 🌟 核心修复：完美的进度条拖拽引擎 ====================
+const isDraggingProgress = ref(false)
+const progressBarRef = ref(null)
+
+const updateSeekPosition = (e) => {
+  if (!progressBarRef.value) return
+  const rect = progressBarRef.value.getBoundingClientRect()
   let percentage = (e.clientX - rect.left) / rect.width
-  if(percentage < 0) percentage = 0; if(percentage > 1) percentage = 1;
-  const video = videoRefs.value[currentEpisode.value]
-  if (video && video.duration) { video.currentTime = percentage * video.duration; currentProgress.value = percentage * 100 }
-  isEnded.value = false; pendingResumeTime.value = 0; showPlayerUi()
+  if (percentage < 0) percentage = 0
+  if (percentage > 1) percentage = 1
+  currentProgress.value = percentage * 100
 }
+
+const handleSeekStart = (e) => {
+  isDraggingProgress.value = true
+  clearTimeout(uiTimeout) // 拖拽时强制保持 UI 显示
+  e.target.setPointerCapture(e.pointerId) // 锁定指针，滑出进度条范围也能捕捉
+  updateSeekPosition(e)
+}
+
+const handleSeeking = (e) => {
+  if (!isDraggingProgress.value) return
+  updateSeekPosition(e)
+}
+
+const handleSeekEnd = (e) => {
+  if (!isDraggingProgress.value) return
+  isDraggingProgress.value = false
+  e.target.releasePointerCapture(e.pointerId) // 释放指针
+
+  const video = videoRefs.value[currentEpisode.value]
+  if (video && video.duration) { 
+    video.currentTime = (currentProgress.value / 100) * video.duration 
+  }
+  isEnded.value = false
+  pendingResumeTime.value = 0
+  showPlayerUi() // 重新启动 3 秒后隐藏 UI 的定时器
+}
+
+// 修改原有的 updateProgress，只有在非拖拽状态下才同步视频真实时间（防跳动）
+const updateProgress = (video) => { 
+  if (!isDraggingProgress.value) {
+    currentProgress.value = (video.currentTime / video.duration) * 100 || 0 
+  }
+}
+// =========================================================================
 
 const scrollToNextEp = () => {
   const container = document.getElementById('video-scroll-container')
@@ -235,9 +268,6 @@ const closePlayer = () => {
   })
   emit('close')
 }
-
-// 这里去掉了 onTimeUpdate 并在模板里使用内联，更安全
-const updateProgress = (video) => { currentProgress.value = (video.currentTime / video.duration) * 100 || 0 }
 
 // 生命周期与监听
 onMounted(() => {
@@ -385,12 +415,24 @@ watch(currentEpisode, () => { sendHeartbeat(isPlaying.value ? 'playing' : 'pause
           </div>
         </div>
 
-        <div class="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] left-3 right-3 h-1 bg-white/30 rounded-full cursor-pointer py-2 -my-2" @click.stop="handleSeek">
-          <div class="h-1 bg-transparent w-full relative rounded-full top-1/2 -translate-y-1/2 overflow-hidden pointer-events-none">
-            <div class="h-full bg-emerald-500 absolute left-0 top-0 transition-all duration-100" :style="`width: ${currentProgress}%`"></div>
+        <div 
+          ref="progressBarRef"
+          class="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] left-3 right-3 h-10 flex items-center cursor-pointer touch-none z-[70] -my-4"
+          @pointerdown.stop="handleSeekStart"
+          @pointermove.stop.prevent="handleSeeking"
+          @pointerup.stop="handleSeekEnd"
+          @pointercancel.stop="handleSeekEnd"
+        >
+          <div class="h-1 bg-white/30 w-full relative rounded-full overflow-hidden pointer-events-none">
+            <div class="h-full bg-emerald-500 absolute left-0 top-0 transition-all duration-75 rounded-full" :style="`width: ${currentProgress}%`"></div>
           </div>
-          <div class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_5px_rgba(0,0,0,0.5)] transition-all duration-100 pointer-events-none" :style="`left: calc(${currentProgress}% - 6px)`"></div>
+          <div 
+            class="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] transition-all duration-75 pointer-events-none" 
+            :style="`left: calc(${currentProgress}% - 7px)`"
+            :class="isDraggingProgress ? 'scale-125 bg-emerald-100' : 'scale-100'"
+          ></div>
         </div>
+
       </div>
     </div>
 
