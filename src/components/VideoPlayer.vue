@@ -104,8 +104,8 @@ const togglePlayerUi = () => {
   if (isPlayerUiVisible.value) { isPlayerUiVisible.value = false; clearTimeout(uiTimeout) } else { showPlayerUi() }
 }
 
-// 手势与倍速控制
-const speedState = reactive({ active: false, locked: false, rate: 1.0 })
+// ==================== 手势与倍速控制 ====================
+const speedState = reactive({ active: false, locked: false, rate: 1.0, pressing: false }) // 🌟 新增 pressing 状态
 let pointerStartY = 0; let longPressTimer = null; let clickTimer = null; let isGestureActive = false 
 
 const setVideoSpeed = (rate) => { speedState.rate = rate; const video = videoRefs.value[currentEpisode.value]; if (video) video.playbackRate = rate }
@@ -113,15 +113,33 @@ const setVideoSpeed = (rate) => { speedState.rate = rate; const video = videoRef
 const handlePointerDown = (e) => { 
   isGestureActive = false; pointerStartY = e.clientY; 
   longPressTimer = setTimeout(() => { 
-    isGestureActive = true; speedState.active = true; setVideoSpeed(2.0);
+    isGestureActive = true; 
+    speedState.active = true; 
+    speedState.pressing = true; // 🌟 长按触发，激活发力状态，准备锁死屏幕
+    setVideoSpeed(2.0);
     if (navigator.vibrate) navigator.vibrate(50);
   }, 400) 
 }
+
 const handlePointerMove = (e) => {
-  if (!speedState.active && longPressTimer) { if (Math.abs(e.clientY - pointerStartY) > 10) { clearTimeout(longPressTimer); longPressTimer = null } } 
-  else if (speedState.active) { const dy = e.clientY - pointerStartY; if (dy > 60 && !speedState.locked) { speedState.locked = true } else if (dy < -60 && speedState.locked) { speedState.locked = false } }
+  if (!speedState.active && longPressTimer) { 
+    if (Math.abs(e.clientY - pointerStartY) > 10) { clearTimeout(longPressTimer); longPressTimer = null } 
+  } 
+  else if (speedState.active && speedState.pressing) { // 🌟 必须在发力状态下，才处理滑动锁定
+    const dy = e.clientY - pointerStartY; 
+    if (dy > 60 && !speedState.locked) { speedState.locked = true } 
+    else if (dy < -60 && speedState.locked) { speedState.locked = false } 
+  }
 }
-const handlePointerUp = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null }; if (speedState.active && !speedState.locked) { speedState.active = false; setVideoSpeed(1.0) } }
+
+const handlePointerUp = () => { 
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null }; 
+  speedState.pressing = false; // 🌟 无论如何，只要松手就解除屏幕锁死
+  if (speedState.active && !speedState.locked) { 
+    speedState.active = false; 
+    setVideoSpeed(1.0) 
+  } 
+}
 
 const handlePlayerClick = () => {
   if (isGestureActive) return 
@@ -332,7 +350,8 @@ watch(currentEpisode, () => { sendHeartbeat(isPlaying.value ? 'playing' : 'pause
     
     <div 
       id="video-scroll-container"
-      class="absolute inset-0 w-full h-full overflow-y-scroll snap-y snap-mandatory no-scrollbar touch-manipulation select-none"
+      class="absolute inset-0 w-full h-full snap-y snap-mandatory no-scrollbar touch-manipulation select-none"
+      :class="speedState.pressing ? 'overflow-hidden' : 'overflow-y-scroll'"
       @scroll="handleScroll"
       @pointerdown="handlePointerDown"
       @pointermove="handlePointerMove"

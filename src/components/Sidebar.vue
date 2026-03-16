@@ -18,7 +18,7 @@ const emit = defineEmits([
 ])
 
 // ==================== 🌟 热更新状态管理 ====================
-const CURRENT_VERSION = '1.0.8' 
+const CURRENT_VERSION = '1.0.9' 
 
 const updateState = ref('idle')
 
