@@ -422,6 +422,8 @@ watch(currentEpisode, () => { sendHeartbeat(isPlaying.value ? 'playing' : 'pause
           @pointermove.stop.prevent="handleSeeking"
           @pointerup.stop="handleSeekEnd"
           @pointercancel.stop="handleSeekEnd"
+          @touchstart.stop
+          @touchmove.stop.prevent
         >
           <div class="h-1 bg-white/30 w-full relative rounded-full overflow-hidden pointer-events-none">
             <div class="h-full bg-emerald-500 absolute left-0 top-0 transition-all duration-75 rounded-full" :style="`width: ${currentProgress}%`"></div>
