@@ -1,8 +1,6 @@
 name: 自动构建并推送 Docker 镜像
 
 on:
-  push:
-    branches: [main]
   release:
     types: [published]
 
@@ -39,4 +37,4 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/mediatok:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/mediatok:${{ github.event.release.tag_name || 'test' }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/mediatok:${{ github.event.release.tag_name }}
